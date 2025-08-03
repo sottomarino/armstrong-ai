@@ -4,8 +4,63 @@ import { apiWrapper } from '../../lib/middleware/apiWrapper';
 import { ApiResponseHandler } from '../../lib/utils/apiResponse';
 import { ExecutionRequest, ExecutionResult } from '../../lib/types/api';
 import { DockerManager } from '../../lib/docker/dockerManager';
+import { SessionService } from '../../lib/database/services/sessionService';
+import { ExecutionService } from '../../lib/database/services/executionService';
 
-async function executeHandler(req: NextApiRequest, res: NextApiResponse) {
+// Estendi NextApiRequest per includere info sessione
+interface ExtendedRequest extends NextApiRequest {
+  sessionId?: string;
+  userId?: string;
+}
+
+// Helper per ottenere o creare sessione
+async function getOrCreateSession(req: NextApiRequest): Promise<string | null> {
+  // Controlla cookie
+  const sessionCookie = req.headers.cookie
+    ?.split(';')
+    .find(cookie => cookie.trim().startsWith('armstrong_session='))
+    ?.split('=')[1];
+
+  if (sessionCookie) {
+    // Valida sessione esistente
+    const session = await SessionService.getSessionByToken(sessionCookie);
+    if (session) {
+      console.log('🔄 Using existing session from cookie:', session.id);
+      return session.id;
+    }
+  }
+
+  // Controlla header personalizzato (per API calls)
+  const sessionHeader = req.headers['x-armstrong-session'] as string;
+  if (sessionHeader) {
+    const session = await SessionService.getSessionByToken(sessionHeader);
+    if (session) {
+      console.log('🔄 Using session from header:', session.id);
+      return session.id;
+    }
+  }
+
+  // Controlla body per sessionToken (alternativa)
+  const { sessionToken } = req.body;
+  if (sessionToken) {
+    const session = await SessionService.getSessionByToken(sessionToken);
+    if (session) {
+      console.log('🔄 Using session from body:', session.id);
+      return session.id;
+    }
+  }
+
+  // Crea nuova sessione
+  console.log('🆕 Creating new anonymous session');
+  const newSession = await SessionService.createAnonymousSession(
+    getClientIP(req),
+    req.headers['user-agent']
+  );
+  
+  return newSession?.id || null;
+}
+
+async function executeHandler(req: ExtendedRequest, res: NextApiResponse) {
   const { code, language, timeout = 30000 }: ExecutionRequest = req.body;
 
   if (!code || !language) {
@@ -15,15 +70,21 @@ async function executeHandler(req: NextApiRequest, res: NextApiResponse) {
   const startTime = performance.now();
 
   try {
+    // Gestisci sessione (usa esistente o crea nuova)
+    let sessionId = await getOrCreateSession(req);
+
+    if (!sessionId) {
+      console.error('Failed to create or get session');
+      // Continua senza sessione per non bloccare l'esecuzione
+    }
+
     let result: Partial<ExecutionResult>;
 
     switch (language) {
       case 'javascript':
-        // JavaScript esecuzione locale (sicura)
         result = await executeJavaScript(code);
         break;
       case 'python':
-        // Python esecuzione Docker (ultra-sicura)
         result = await executePythonDocker(code, timeout);
         break;
       case 'json':
@@ -42,11 +103,82 @@ async function executeHandler(req: NextApiRequest, res: NextApiResponse) {
       timestamp: new Date().toISOString()
     } as ExecutionResult;
 
-    return ApiResponseHandler.success(res, executionResult, 'Code executed successfully');
+    // Salva esecuzione nel database
+    if (sessionId) {
+      try {
+        await ExecutionService.saveExecution({
+          sessionId,
+          userId: req.userId,
+          language,
+          codeSnippet: code,
+          success: result.success || false,
+          output: result.output,
+          errorMessage: result.error,
+          executionTimeMs: executionTime,
+          executionMethod: language === 'python' ? 'simulation' : 'local'
+        });
+
+        // Incrementa contatore sessione
+        await SessionService.incrementExecutions(sessionId);
+        await SessionService.updateSessionActivity(sessionId);
+
+        console.log(`✅ Execution saved to session ${sessionId}`);
+      } catch (dbError) {
+        console.error('Database save error:', dbError);
+        // Non fermare l'esecuzione per errori DB
+      }
+    }
+
+    // Ottieni sessionToken per la risposta (se abbiamo sessionId)
+    let sessionToken = null;
+    if (sessionId) {
+      try {
+        const sessionData = await SessionService.getSessionByToken(
+          req.headers['x-armstrong-session'] as string ||
+          req.body.sessionToken ||
+          req.headers.cookie?.split(';').find(c => c.trim().startsWith('armstrong_session='))?.split('=')[1] ||
+          ''
+        );
+        sessionToken = sessionData?.sessionToken;
+      } catch (error) {
+        console.error('Error getting session token:', error);
+      }
+    }
+
+    // Aggiungi info sessione alla risposta
+    return ApiResponseHandler.success(res, {
+      ...executionResult,
+      sessionId,
+      sessionToken,
+      metadata: {
+        executionMethod: language === 'python' ? 'simulation' : 'local',
+        sessionManaged: !!sessionId,
+        isNewSession: !req.headers['x-armstrong-session'] && !req.body.sessionToken && !sessionToken
+      }
+    }, 'Code executed successfully');
 
   } catch (error: unknown) {
     const executionTime = Math.floor(performance.now() - startTime);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Salva anche gli errori nel database
+    const sessionId = await getOrCreateSession(req);
+    if (sessionId) {
+      try {
+        await ExecutionService.saveExecution({
+          sessionId,
+          userId: req.userId,
+          language,
+          codeSnippet: code,
+          success: false,
+          errorMessage,
+          executionTimeMs: executionTime,
+          executionMethod: language === 'python' ? 'simulation' : 'local'
+        });
+      } catch (dbError) {
+        console.error('Database error save failed:', dbError);
+      }
+    }
     
     const errorResult: ExecutionResult = {
       success: false,
@@ -58,6 +190,17 @@ async function executeHandler(req: NextApiRequest, res: NextApiResponse) {
 
     return ApiResponseHandler.success(res, errorResult, 'Execution completed with errors');
   }
+}
+
+// Helper per ottenere IP client
+function getClientIP(req: NextApiRequest): string {
+  return (
+    (req.headers['x-forwarded-for'] as string) ||
+    (req.headers['x-real-ip'] as string) ||
+    req.connection?.remoteAddress ||
+    req.socket?.remoteAddress ||
+    'unknown'
+  );
 }
 
 // JavaScript locale (come prima ma migliorato)
@@ -73,7 +216,6 @@ async function executeJavaScript(code: string) {
   };
 
   try {
-    // Timeout di sicurezza per JavaScript
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('JavaScript execution timeout')), 10000);
     });
@@ -104,12 +246,11 @@ ${'='.repeat(40)}
   }
 }
 
-// Python con Docker (NUOVO E POTENTE!)
+// Python con Docker (migliorato)
 async function executePythonDocker(code: string, timeout: number) {
   try {
     console.log('🐳 Checking Docker availability...');
     
-    // Controlla se Docker è disponibile
     const dockerAvailable = await DockerManager.checkDockerAvailability();
     
     if (!dockerAvailable) {
@@ -145,7 +286,6 @@ ${'='.repeat(50)}
 
     console.log('🚀 Executing Python code in Docker container...');
     
-    // Esegui con Docker
     const result = await DockerManager.executeCode({
       language: 'python',
       code,
@@ -169,7 +309,6 @@ ${'='.repeat(50)}
     const errorMessage = error instanceof Error ? error.message : 'Docker execution failed';
     console.error('Python Docker execution error:', errorMessage);
     
-    // Fallback graceful
     return {
       success: false,
       output: '',
@@ -192,7 +331,6 @@ function validateJSON(code: string) {
   try {
     const parsed = JSON.parse(code);
     
-    // Informazioni aggiuntive sul JSON
     const jsonInfo = {
       type: Array.isArray(parsed) ? 'Array' : typeof parsed,
       size: JSON.stringify(parsed).length,
