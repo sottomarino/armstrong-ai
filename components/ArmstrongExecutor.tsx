@@ -345,16 +345,40 @@ export default function ArmstrongExecutor() {
     }
   };
 
-  // Esecuzione Python via API
+  // Esecuzione Python via API con debug migliorato
   const executePython = async (pythonCode) => {
     try {
+      console.log('🚀 Starting Python execution...', { code: pythonCode });
+
       const response = await fetch('/api/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: pythonCode, language: 'python' }),
       });
 
-      const result = await response.json();
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Leggi come testo prima di parsare JSON
+      const responseText = await response.text();
+      console.log('📄 Raw response:', responseText);
+
+      if (!responseText) {
+        throw new Error('Empty response from server');
+      }
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+        console.log('✅ Parsed JSON:', result);
+      } catch (parseError) {
+        console.error('❌ JSON Parse Error:', parseError);
+        throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
+      }
       
       if (result.success) {
         return { success: true, output: result.output || 'Python code executed successfully' };
@@ -362,7 +386,18 @@ export default function ArmstrongExecutor() {
         return { success: false, output: '', error: result.error || 'Python execution failed' };
       }
     } catch (error) {
-      return { success: false, output: '', error: `Network error: ${error.message}` };
+      console.error('🚨 Python execution error:', error);
+      
+      let errorMessage = 'Network error: ';
+      if (error.message.includes('JSON')) {
+        errorMessage += `JSON Parse Error - ${error.message}`;
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage += 'Cannot reach server';
+      } else {
+        errorMessage += error.message;
+      }
+      
+      return { success: false, output: '', error: errorMessage };
     }
   };
 
@@ -383,7 +418,7 @@ export default function ArmstrongExecutor() {
     }
   };
 
-  // Esecuzione principale
+  // Esecuzione principale con debug migliorato
   const executeCode = async () => {
     setIsExecuting(true);
     setExecutionStatus('running');
