@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 Armstrong E2B - The Ultimate Code Execution Platform
 
-## Getting Started
+**Inspired by Stretch Armstrong • Powered by E2B Technology**
 
-First, run the development server:
+Armstrong E2B is a revolutionary code execution platform that combines the nostalgic power of Stretch Armstrong with cutting-edge E2B technology to deliver secure, scalable, and lightning-fast code execution.
+
+## 🎯 Features
+
+- **🔥 Real-time Code Execution** - JavaScript, Python, HTML, TypeScript, CSS
+- **🛡️ E2B Security** - Advanced sandboxing and security scanning
+- **☁️ Cloud-Powered** - Firebase backend with real-time sync
+- **📊 Analytics** - Comprehensive execution analytics
+- **📁 File Management** - Upload, save, and share code files
+- **🎨 Stretch UI** - Nostalgic Stretch Armstrong interface
+- **⚡ Lightning Fast** - Optimized for performance
+- **🌐 Responsive** - Works on all devices
+
+## 🚀 Quick Start
 
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/armstrong-e2b.git
+cd armstrong-e2b
+
+# Install dependencies
+npm install
+
+# Setup environment variables
+cp .env.example .env.local
+# Edit .env.local with your Firebase configuration
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🔧 Configuration
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Firebase Setup**
+   - Create a Firebase project
+   - Enable Firestore, Storage, and Analytics
+   - Copy configuration to `.env.local`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Vercel Deployment**
+   ```bash
+   npm run deploy
+   ```
 
-## Learn More
+## 📖 API Documentation
 
-To learn more about Next.js, take a look at the following resources:
+### Code Execution
+```javascript
+POST /api/execute
+{
+  "code": "console.log('Hello Armstrong E2B!');",
+  "language": "javascript",
+  "sessionId": "optional-session-id"
+}
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### File Management
+```javascript
+POST /api/files
+{
+  "fileName": "example.js",
+  "content": "console.log('Hello World!');",
+  "language": "javascript"
+}
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🏗️ Tech Stack
 
-## Deploy on Vercel
+- **Frontend:** Next.js 14, React 18, Tailwind CSS
+- **Animations:** Framer Motion
+- **Backend:** Next.js API Routes, Firebase
+- **Database:** Firestore
+- **Storage:** Firebase Storage
+- **Security:** VM2 Sandboxing
+- **Deployment:** Vercel
+- **Analytics:** Firebase Analytics
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🎨 Design Philosophy
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Armstrong E2B combines:
+- **Nostalgia** - Inspired by the classic Stretch Armstrong toy
+- **Innovation** - Powered by modern E2B technology
+- **Simplicity** - Clean, minimal interface
+- **Power** - Enterprise-grade code execution
+
+## 📊 Monitoring & Analytics
+
+- Real-time execution metrics
+- Error tracking and logging
+- User session analytics
+- Performance monitoring
+
+## 🔒 Security
+
+- VM2 sandboxing for safe code execution
+- Firebase security rules
+- Rate limiting and abuse prevention
+- Comprehensive input validation
+
+## 🤝 Contributing
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **E2B Team** - For the inspiring technology platform
+- **Stretch Armstrong** - For the nostalgic inspiration
+- **Firebase** - For the robust backend infrastructure
+- **Vercel** - For seamless deployment
+
+## 📞 Support
+
+- **Documentation:** [Armstrong E2B Docs](https://your-docs-url.com)
+- **Issues:** [GitHub Issues](https://github.com/yourusername/armstrong-e2b/issues)
+- **Email:** support@armstrong-e2b.com
+- **Discord:** [Armstrong E2B Community](https://discord.gg/armstrong-e2b)
+
+---
+
+**© 2025 Armstrong E2B - Powered by E2B Technology**
+
+*Stretch your code to new possibilities!* 💪🚀

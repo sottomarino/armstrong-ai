@@ -1,27 +1,65 @@
 {
-  "name": "armstrong-ai",
-  "version": "0.1.0",
+  "name": "armstrong-e2b",
+  "version": "1.0.0",
+  "description": "Armstrong E2B - The Ultimate Code Execution Platform powered by E2B Technology",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy": "vercel --prod",
+    "e2b:setup": "echo 'Setting up Armstrong E2B...'",
+    "e2b:test": "echo 'Testing Armstrong E2B connection...'"
   },
   "dependencies": {
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "next": "15.4.5"
+    "@monaco-editor/react": "^4.7.0",
+    "cors": "^2.8.5",
+    "firebase": "^10.7.0",
+    "framer-motion": "^10.18.0",
+    "lucide-react": "^0.294.0",
+    "next": "14.0.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "uuid": "^9.0.1",
+    "vm2": "^3.9.19"
   },
   "devDependencies": {
-    "typescript": "^5",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
-    "eslint": "^9",
-    "eslint-config-next": "15.4.5",
-    "@eslint/eslintrc": "^3"
+    "@types/cors": "^2.8.17",
+    "@types/node": "^24.1.0",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "@types/uuid": "^9.0.7",
+    "autoprefixer": "^10",
+    "eslint": "^8",
+    "eslint-config-next": "14.0.0",
+    "postcss": "^8",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/armstrong-e2b.git"
+  },
+  "keywords": [
+    "armstrong-e2b",
+    "code-execution",
+    "e2b",
+    "sandbox",
+    "stretch-armstrong",
+    "e2b-clone",
+    "code-platform",
+    "firebase",
+    "nextjs"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "e2b": {
+    "platform": "armstrong",
+    "version": "1.0.0",
+    "powered_by": "E2B Technology"
   }
 }
