@@ -1,0 +1,41 @@
+# lib/docker/containers/Dockerfile.python
+FROM python:3.11-alpine
+
+# Metadati Armstrong
+LABEL maintainer="Armstrong AI"
+LABEL description="Secure Python execution environment for Armstrong AI"
+LABEL version="1.0"
+
+# Crea utente non-root per sicurezza
+RUN addgroup -g 1000 armstrong && \
+    adduser -D -s /bin/sh -u 1000 -G armstrong armstrong
+
+# Installa solo le librerie Python essenziali e sicure
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+        numpy==1.24.3 \
+        pandas==2.0.3 \
+        matplotlib==3.7.2 \
+        requests==2.31.0 \
+        beautifulsoup4==4.12.2 \
+        pillow==10.0.0
+
+# Rimuovi pip per sicurezza (evita installazioni runtime)
+RUN pip uninstall -y pip setuptools
+
+# Crea directory di lavoro
+WORKDIR /app
+
+# Cambia ownership
+RUN chown -R armstrong:armstrong /app
+
+# Switch a utente non-root
+USER armstrong
+
+# Configurazione sicurezza runtime
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONHASHSEED=random
+
+# Comando default
+CMD ["python3"]

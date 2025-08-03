@@ -4,6 +4,8 @@ import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { API_CONFIG } from '../config/api';
+import { SecurityPolicyManager } from './securityPolicy';
+import { DockerImageBuilder } from './buildImages';
 
 export interface DockerExecutionOptions {
   language: 'python' | 'javascript' | 'node';
@@ -208,23 +210,33 @@ try {
     language: string;
   }): Promise<Omit<DockerExecutionResult, 'executionTime'>> {
     
-    const { image, filePath, fileName, timeout, memoryLimit, cpuLimit, language } = options;
+    const { filePath, fileName, timeout, language } = options;
+
+    // Usa security policy appropriata
+    const environment = process.env.NODE_ENV || 'production';
+    const policy = SecurityPolicyManager.getPolicy(environment);
+    
+    // Usa immagine personalizzata se disponibile
+    const customImageAvailable = await DockerImageBuilder.checkCustomImages();
+    const image = customImageAvailable 
+      ? DockerImageBuilder.getImageTag(language)
+      : options.image;
+
+    console.log(`🔒 Using security policy: ${policy.name}`);
+    console.log(`🐳 Using Docker image: ${image}`);
 
     return new Promise((resolve) => {
       const command = language === 'python' ? 'python3' : 'node';
+      
+      // Costruisci args Docker con security policy
       const dockerArgs = [
         'run',
         '--rm',
-        '--network=none',
-        '--read-only',
-        '--tmpfs=/tmp:rw,noexec,nosuid,size=100m',
-        `--memory=${memoryLimit}`,
-        `--cpus=${cpuLimit}`,
-        '--pids-limit=32',
-        '--ulimit=nproc=32:32',
-        '--ulimit=nofile=64:64',
-        '--security-opt=no-new-privileges',
-        '--cap-drop=ALL',
+        ...policy.dockerArgs,
+        `--memory=${policy.resourceLimits.memory}`,
+        `--cpus=${policy.resourceLimits.cpu}`,
+        `--ulimit=nproc=${policy.resourceLimits.processes}:${policy.resourceLimits.processes}`,
+        `--ulimit=nofile=${policy.resourceLimits.fileDescriptors}:${policy.resourceLimits.fileDescriptors}`,
         '-v', `${filePath}:/app/${fileName}:ro`,
         '-w', '/app',
         image,
@@ -232,12 +244,30 @@ try {
         fileName
       ];
 
+      console.log(`🚀 Executing with security policy: ${policy.name}`);
+
       let stdout = '';
       let stderr = '';
+      let startTime = Date.now();
 
       const child: ChildProcess = spawn('docker', dockerArgs, {
         stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: timeout
+        timeout: policy.timeouts.execution
+      });
+
+      // Monitoring risorse (in background)
+      let monitoringInterval: NodeJS.Timeout | null = null;
+      
+      child.on('spawn', () => {
+        // Avvia monitoring ogni 2 secondi
+        monitoringInterval = setInterval(async () => {
+          try {
+            const stats = await SecurityPolicyManager.monitorContainerResources('container-id');
+            console.log(`📊 Resources: Memory: ${stats.memoryUsage}MB, CPU: ${stats.cpuUsage}%, Processes: ${stats.processCount}`);
+          } catch (error) {
+            // Monitoring non critico
+          }
+        }, 2000);
       });
 
       child.stdout?.on('data', (data) => {
@@ -249,8 +279,14 @@ try {
       });
 
       child.on('close', (exitCode) => {
+        if (monitoringInterval) {
+          clearInterval(monitoringInterval);
+        }
+
+        const executionTime = Date.now() - startTime;
         const success = exitCode === 0;
-        const output = stdout || stderr || 'No output generated';
+        
+        console.log(`✅ Container finished: exit code ${exitCode}, time: ${executionTime}ms`);
         
         resolve({
           success,
@@ -261,6 +297,10 @@ try {
       });
 
       child.on('error', (error) => {
+        if (monitoringInterval) {
+          clearInterval(monitoringInterval);
+        }
+        
         resolve({
           success: false,
           output: '',
@@ -269,18 +309,21 @@ try {
         });
       });
 
-      // Timeout di sicurezza
+      // Timeout di sicurezza con grace period
       setTimeout(() => {
         if (!child.killed) {
-          child.kill('SIGKILL');
-          resolve({
-            success: false,
-            output: '',
-            error: 'Execution timeout exceeded',
-            exitCode: 124
-          });
+          console.log('⚠️  Graceful timeout, sending SIGTERM...');
+          child.kill('SIGTERM');
+          
+          // Fallback force kill dopo 5 secondi
+          setTimeout(() => {
+            if (!child.killed) {
+              console.log('🚫 Force killing container...');
+              child.kill('SIGKILL');
+            }
+          }, 5000);
         }
-      }, timeout + 5000);
+      }, policy.timeouts.execution);
     });
   }
 
