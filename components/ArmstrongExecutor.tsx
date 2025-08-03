@@ -28,12 +28,108 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+// Configurazioni linguaggi
+const LANGUAGE_CONFIGS = {
+  javascript: {
+    name: 'JavaScript',
+    icon: '🟨',
+    color: '#f7df1e',
+    defaultCode: `// Welcome to Armstrong Code Executor!
+console.log("Hello from Armstrong! 🤖");
+console.log("Code execution successful!");
+return "Armstrong is ready to stretch!";`,
+    execution: 'client'
+  },
+  python: {
+    name: 'Python',
+    icon: '🐍',
+    color: '#3776ab',
+    defaultCode: `# Welcome to Armstrong Python Executor!
+print("Hello from Armstrong! 🤖")
+print("Python code execution successful!")
+result = "Armstrong is ready to stretch with Python!"
+print(result)`,
+    execution: 'e2b'
+  },
+  html: {
+    name: 'HTML',
+    icon: '🌐',
+    color: '#e34f26',
+    defaultCode: `<!DOCTYPE html>
+<html>
+<head>
+    <title>Armstrong HTML</title>
+    <style>
+        body { font-family: Arial; text-align: center; padding: 50px; }
+        .armstrong { color: #4CAF50; font-size: 24px; }
+    </style>
+</head>
+<body>
+    <h1 class="armstrong">🤖 Armstrong HTML Executor</h1>
+    <p>HTML execution successful!</p>
+</body>
+</html>`,
+    execution: 'preview'
+  },
+  css: {
+    name: 'CSS',
+    icon: '🎨',
+    color: '#1572b6',
+    defaultCode: `.armstrong-demo {
+  background: linear-gradient(45deg, #4CAF50, #2196F3);
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.robot-icon {
+  font-size: 48px;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}`,
+    execution: 'preview'
+  },
+  json: {
+    name: 'JSON',
+    icon: '📄',
+    color: '#000000',
+    defaultCode: `{
+  "armstrong": {
+    "name": "Armstrong Code Executor",
+    "version": "1.0",
+    "status": "ready",
+    "capabilities": [
+      "JavaScript execution",
+      "Python execution",
+      "HTML preview",
+      "CSS styling",
+      "JSON validation"
+    ],
+    "message": "🤖 Armstrong is ready to stretch!",
+    "languages": {
+      "javascript": "✅",
+      "python": "✅", 
+      "html": "✅",
+      "css": "✅",
+      "json": "✅"
+    }
+  }
+}`,
+    execution: 'validate'
+  }
+};
+
 // Armstrong Container con esecuzione reale
-const ArmstrongContainer = ({ isExecuting, onExecute, executionStatus }: {
-  isExecuting: boolean;
-  onExecute: () => void;
-  executionStatus: string;
-}) => {
+const ArmstrongContainer = ({ isExecuting, onExecute, executionStatus, currentLanguage }) => {
   const [isStretched, setIsStretched] = useState(false);
   
   useEffect(() => {
@@ -49,7 +145,7 @@ const ArmstrongContainer = ({ isExecuting, onExecute, executionStatus }: {
       case 'success': return '#10b981';
       case 'error': return '#ef4444';
       case 'running': return '#f59e0b';
-      default: return '#113448';
+      default: return LANGUAGE_CONFIGS[currentLanguage]?.color || '#113448';
     }
   };
 
@@ -116,6 +212,14 @@ const ArmstrongContainer = ({ isExecuting, onExecute, executionStatus }: {
             {executionStatus === 'error' && 'ERROR'}
             {executionStatus === 'ready' && 'READY'}
           </motion.div>
+
+          {/* Indicatore linguaggio nell'angolo */}
+          <div 
+            className="absolute top-4 right-4 text-2xl bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+            title={LANGUAGE_CONFIGS[currentLanguage]?.name}
+          >
+            {LANGUAGE_CONFIGS[currentLanguage]?.icon}
+          </div>
         </motion.div>
 
         {/* Linee di stretch animate */}
@@ -193,20 +297,93 @@ const ArmstrongContainer = ({ isExecuting, onExecute, executionStatus }: {
   );
 };
 
-// Main App semplificato
+// Main App con supporto multilingue
 export default function ArmstrongExecutor() {
-  const [code, setCode] = useState(`// Welcome to Armstrong Code Executor!
-console.log("Hello from Armstrong! 🤖");
-console.log("Code execution successful!");
-return "Armstrong is ready to stretch!";`);
-
-  const [output, setOutput] = useState('');
   const [language, setLanguage] = useState('javascript');
+  const [code, setCode] = useState(LANGUAGE_CONFIGS.javascript.defaultCode);
+  const [output, setOutput] = useState('');
+  const [previewContent, setPreviewContent] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionStatus, setExecutionStatus] = useState('ready');
-  const [executionTime, setExecutionTime] = useState<number | null>(null);
+  const [executionTime, setExecutionTime] = useState(null);
 
-  // Simulazione esecuzione codice
+  const languageConfig = LANGUAGE_CONFIGS[language];
+
+  // Cambia linguaggio
+  const handleLanguageChange = (newLang) => {
+    setLanguage(newLang);
+    setCode(LANGUAGE_CONFIGS[newLang].defaultCode);
+    setOutput('');
+    setPreviewContent('');
+    setExecutionStatus('ready');
+    setExecutionTime(null);
+  };
+
+  // Esecuzione JavaScript
+  const executeJavaScript = async (jsCode) => {
+    try {
+      const logs = [];
+      const originalConsoleLog = console.log;
+      
+      console.log = (...args) => {
+        logs.push(args.map(arg => 
+          typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+        ).join(' '));
+        originalConsoleLog(...args);
+      };
+
+      const func = new Function(jsCode);
+      const result = func();
+      
+      console.log = originalConsoleLog;
+      
+      const output = logs.length > 0 ? logs.join('\n') : (result !== undefined ? String(result) : 'Code executed successfully');
+      
+      return { success: true, output };
+    } catch (error) {
+      return { success: false, output: '', error: error.message };
+    }
+  };
+
+  // Esecuzione Python via API
+  const executePython = async (pythonCode) => {
+    try {
+      const response = await fetch('/api/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: pythonCode, language: 'python' }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        return { success: true, output: result.output || 'Python code executed successfully' };
+      } else {
+        return { success: false, output: '', error: result.error || 'Python execution failed' };
+      }
+    } catch (error) {
+      return { success: false, output: '', error: `Network error: ${error.message}` };
+    }
+  };
+
+  // Validazione JSON
+  const validateJSON = (jsonCode) => {
+    try {
+      const parsed = JSON.parse(jsonCode);
+      return { 
+        success: true, 
+        output: `✅ Valid JSON!\n\nFormatted output:\n${JSON.stringify(parsed, null, 2)}` 
+      };
+    } catch (error) {
+      return { 
+        success: false, 
+        output: '', 
+        error: `❌ Invalid JSON: ${error.message}` 
+      };
+    }
+  };
+
+  // Esecuzione principale
   const executeCode = async () => {
     setIsExecuting(true);
     setExecutionStatus('running');
@@ -215,39 +392,62 @@ return "Armstrong is ready to stretch!";`);
     const startTime = performance.now();
     
     try {
-      // Simula esecuzione
-      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
-      
-      let result = '';
-      let success = Math.random() > 0.2; // 80% di successo
-      
-      if (success) {
-        result = `Armstrong JavaScript Engine v1.0
->> Executing JavaScript code...
->> Hello from Armstrong! 🤖
->> Code execution successful!
->> Armstrong is ready to stretch!
->> Execution completed successfully ✓
->> Memory usage: ${Math.floor(Math.random() * 50 + 10)}MB
->> Armstrong Power Level: MAXIMUM! ⚡`;
-        setExecutionStatus('success');
-      } else {
-        result = `Armstrong Error Handler v1.0
->> Error detected in code execution
->> SyntaxError: Unexpected token on line ${Math.floor(Math.random() * 10 + 1)}
->> Armstrong suggests checking your syntax
->> Error Code: ARM_${Math.floor(Math.random() * 9999)}
->> Try again! Armstrong believes in you! 💪`;
-        setExecutionStatus('error');
+      let result;
+
+      switch (language) {
+        case 'javascript':
+          result = await executeJavaScript(code);
+          break;
+        case 'python':
+          result = await executePython(code);
+          break;
+        case 'html':
+        case 'css':
+          setPreviewContent(code);
+          result = { success: true, output: `${languageConfig.name} preview updated successfully!` };
+          break;
+        case 'json':
+          result = validateJSON(code);
+          break;
+        default:
+          result = { success: false, output: '', error: 'Language not supported' };
       }
-      
+
       const endTime = performance.now();
       const execTime = Math.floor(endTime - startTime);
       setExecutionTime(execTime);
-      setOutput(result);
+
+      if (result.success) {
+        let outputText = '';
+        if (language === 'javascript') {
+          outputText = `Armstrong JavaScript Engine v1.0
+>> Executing ${language.toUpperCase()} code...
+>> ${result.output}
+>> Execution completed successfully ✓
+>> Memory usage: ${Math.floor(Math.random() * 50 + 10)}MB
+>> Armstrong Power Level: MAXIMUM! ⚡`;
+        } else {
+          outputText = `Armstrong ${languageConfig.name} Engine v1.0
+>> Executing ${language.toUpperCase()} code...
+>> ${result.output}
+>> Execution completed successfully ✓
+>> Armstrong Power Level: MAXIMUM! ⚡`;
+        }
+        setOutput(outputText);
+        setExecutionStatus('success');
+      } else {
+        const errorOutput = `Armstrong Error Handler v1.0
+>> Error detected in ${language.toUpperCase()} execution
+>> ${result.error}
+>> Armstrong suggests checking your syntax
+>> Error Code: ARM_${Math.floor(Math.random() * 9999)}
+>> Try again! Armstrong believes in you! 💪`;
+        setOutput(errorOutput);
+        setExecutionStatus('error');
+      }
       
     } catch (error) {
-      setOutput(`Armstrong System Error:\n${(error as Error).message}\nPlease try again!`);
+      setOutput(`Armstrong System Error:\n${error.message}\nPlease try again!`);
       setExecutionStatus('error');
     } finally {
       setIsExecuting(false);
@@ -322,7 +522,7 @@ return "Armstrong is ready to stretch!";`);
                 ARMSTRONG CODE EXECUTOR
               </h1>
               <p className="text-white text-lg">
-                Advanced Code Execution Platform
+                Multi-Language Code Execution Platform
               </p>
             </div>
           </div>
@@ -364,10 +564,40 @@ return "Armstrong is ready to stretch!";`);
             </motion.button>
             
             <div className="text-white text-sm">
-              v1.0 | Ready
+              v1.0 | Multi-Lang
             </div>
           </div>
         </div>
+
+        {/* Language Selector */}
+        <motion.div 
+          className="max-w-7xl mx-auto mt-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        >
+          <div className="flex flex-wrap gap-3 justify-center">
+            {Object.entries(LANGUAGE_CONFIGS).map(([lang, config]) => (
+              <motion.button
+                key={lang}
+                onClick={() => handleLanguageChange(lang)}
+                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center space-x-2 ${
+                  language === lang
+                    ? 'bg-white text-gray-800 shadow-lg'
+                    : 'bg-white/20 hover:bg-white/30 text-white'
+                }`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  borderLeft: language === lang ? `4px solid ${config.color}` : 'none'
+                }}
+              >
+                <span className="text-lg">{config.icon}</span>
+                <span>{config.name}</span>
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
       </motion.header>
 
       <div className="max-w-7xl mx-auto p-8">
@@ -380,7 +610,7 @@ return "Armstrong is ready to stretch!";`);
         >
           <motion.h2 
             className="text-3xl font-bold mb-4 tracking-wider"
-            style={{ color: '#113448' }}
+            style={{ color: languageConfig.color }}
           >
             ARMSTRONG STRETCH EXECUTOR
           </motion.h2>
@@ -392,10 +622,11 @@ return "Armstrong is ready to stretch!";`);
             isExecuting={isExecuting} 
             onExecute={executeCode}
             executionStatus={executionStatus}
+            currentLanguage={language}
           />
         </motion.div>
 
-        {/* Code Editor and Terminal */}
+        {/* Code Editor and Output */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           {/* Code Editor */}
           <motion.div
@@ -409,16 +640,19 @@ return "Armstrong is ready to stretch!";`);
                 CODE EDITOR
               </h3>
             </div>
-            <div className="relative bg-white rounded-xl border-4 overflow-hidden shadow-xl" style={{ borderColor: '#113448' }}>
+            <div className="relative bg-white rounded-xl border-4 overflow-hidden shadow-xl" style={{ borderColor: languageConfig.color }}>
               <div className="px-6 py-4 flex items-center justify-between border-b-4" style={{ 
-                backgroundColor: '#113448',
-                borderColor: '#113448'
+                backgroundColor: languageConfig.color,
+                borderColor: languageConfig.color
               }}>
                 <div className="flex items-center space-x-3">
                   <Code size={24} className="text-white" />
                   <span className="text-white font-bold text-xl tracking-wider">
-                    JAVASCRIPT EDITOR
+                    {languageConfig.name.toUpperCase()} EDITOR
                   </span>
+                </div>
+                <div className="text-white text-lg">
+                  {languageConfig.icon}
                 </div>
               </div>
               
@@ -427,13 +661,13 @@ return "Armstrong is ready to stretch!";`);
                 onChange={(e) => setCode(e.target.value)}
                 className="w-full h-80 bg-white font-mono text-lg p-6 resize-none focus:outline-none border-none"
                 style={{ color: '#113448' }}
-                placeholder="// Write your JavaScript code here..."
+                placeholder={`// Write your ${languageConfig.name} code here...`}
                 disabled={isExecuting}
               />
             </div>
           </motion.div>
 
-          {/* Terminal */}
+          {/* Output Area */}
           <motion.div
             initial={{ x: 100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -442,57 +676,188 @@ return "Armstrong is ready to stretch!";`);
             <div className="mb-4">
               <h3 className="text-2xl font-bold tracking-wider flex items-center" style={{ color: '#113448' }}>
                 <Terminal size={28} className="mr-3" />
-                EXECUTION CONSOLE
+                {(language === 'html' || language === 'css') && previewContent ? 'PREVIEW' : 'EXECUTION CONSOLE'}
               </h3>
             </div>
-            <div className="relative rounded-xl border-4 overflow-hidden shadow-xl" style={{ 
-              backgroundColor: '#113448',
-              borderColor: '#113448'
-            }}>
-              <div className="px-6 py-4 flex items-center justify-between border-b-4 border-white/20">
-                <div className="flex items-center space-x-3">
-                  <Terminal size={24} className="text-white" />
-                  <span className="text-white font-bold text-xl tracking-wider">
-                    CONSOLE OUTPUT
-                  </span>
+
+            {/* Preview per HTML/CSS */}
+            {(language === 'html' || language === 'css') && previewContent ? (
+              <div className="relative rounded-xl border-4 overflow-hidden shadow-xl bg-white" style={{ borderColor: languageConfig.color }}>
+                <div className="px-6 py-4 flex items-center justify-between border-b-4" style={{ 
+                  backgroundColor: languageConfig.color,
+                  borderColor: languageConfig.color
+                }}>
+                  <div className="flex items-center space-x-3">
+                    <Terminal size={24} className="text-white" />
+                    <span className="text-white font-bold text-xl tracking-wider">
+                      {languageConfig.name.toUpperCase()} PREVIEW
+                    </span>
+                  </div>
                 </div>
                 
-                {executionTime && (
-                  <div className="text-white text-sm flex items-center space-x-2">
-                    <Clock size={16} />
-                    <span>{executionTime}ms</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="h-80 text-white font-mono text-sm p-6 overflow-y-auto">
-                {output ? (
-                  <div className="text-green-400">
-                    {output.split('\n').map((line, i) => (
-                      <div key={i}>{line}</div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-gray-400">
-                    {isExecuting ? (
-                      <div>
-                        <div className="text-yellow-400">→ Armstrong is executing...</div>
-                        <div className="text-blue-400">→ Processing code...</div>
-                        <div className="text-green-400">→ Almost ready...</div>
+                <div className="h-80 overflow-auto">
+                  {language === 'html' ? (
+                    <iframe
+                      srcDoc={previewContent}
+                      className="w-full h-full border-0"
+                      sandbox="allow-scripts"
+                    />
+                  ) : (
+                    <div className="p-4">
+                      <style>{previewContent}</style>
+                      <div className="armstrong-demo">
+                        <div className="robot-icon">🤖</div>
+                        <h2>Armstrong CSS Executor</h2>
+                        <p>Your CSS styles are applied above!</p>
                       </div>
-                    ) : (
-                      <div>
-                        <div>Welcome to Armstrong Console!</div>
-                        <div>Click Armstrong to execute your code</div>
-                        <div className="text-cyan-400 mt-2">Ready for code execution! 🚀</div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Console normale */
+              <div className="relative rounded-xl border-4 overflow-hidden shadow-xl" style={{ 
+                backgroundColor: '#113448',
+                borderColor: languageConfig.color
+              }}>
+                <div className="px-6 py-4 flex items-center justify-between border-b-4 border-white/20">
+                  <div className="flex items-center space-x-3">
+                    <Terminal size={24} className="text-white" />
+                    <span className="text-white font-bold text-xl tracking-wider">
+                      CONSOLE OUTPUT
+                    </span>
+                  </div>
+                  
+                  {executionTime && (
+                    <div className="text-white text-sm flex items-center space-x-2">
+                      <Clock size={16} />
+                      <span>{executionTime}ms</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="h-80 text-white font-mono text-sm p-6 overflow-y-auto">
+                  {output ? (
+                    <div className="text-green-400">
+                      {output.split('\n').map((line, i) => (
+                        <div key={i}>{line}</div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-400">
+                      {isExecuting ? (
+                        <div>
+                          <div className="text-yellow-400">→ Armstrong is executing {languageConfig.name}...</div>
+                          <div className="text-blue-400">→ Processing {language} code...</div>
+                          <div className="text-green-400">→ Almost ready...</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div>Welcome to Armstrong {languageConfig.name} Console! {languageConfig.icon}</div>
+                          <div>Selected: {languageConfig.name} ({language})</div>
+                          <div>Click Armstrong to execute your {language} code</div>
+                          <div className="text-cyan-400 mt-2">Ready for {languageConfig.name} execution! 🚀</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
+
+        {/* Language Info Panel */}
+        <motion.div
+          className="mt-8 bg-white rounded-xl border-4 p-6 shadow-xl"
+          style={{ borderColor: languageConfig.color }}
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.8 }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="text-4xl">{languageConfig.icon}</div>
+              <div>
+                <h4 className="text-2xl font-bold" style={{ color: languageConfig.color }}>
+                  {languageConfig.name} Mode Active
+                </h4>
+                <p className="text-gray-600">
+                  {language === 'javascript' && 'Client-side execution with real-time console output'}
+                  {language === 'python' && 'Server-side execution via E2B sandbox environment'}
+                  {language === 'html' && 'Live HTML preview with iframe rendering'}
+                  {language === 'css' && 'Live CSS preview with interactive styling'}
+                  {language === 'json' && 'JSON validation and formatting with error detection'}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-gray-500">Execution Method</div>
+              <div className="font-bold" style={{ color: languageConfig.color }}>
+                {languageConfig.execution === 'client' && 'Client-side'}
+                {languageConfig.execution === 'e2b' && 'E2B Sandbox'}
+                {languageConfig.execution === 'preview' && 'Live Preview'}
+                {languageConfig.execution === 'validate' && 'Validation'}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Features Grid */}
+        <motion.div
+          className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 1 }}
+        >
+          <div className="bg-white rounded-lg p-6 shadow-lg border-l-4" style={{ borderColor: '#f7df1e' }}>
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-3">🟨</span>
+              <h5 className="font-bold text-lg">JavaScript</h5>
+            </div>
+            <p className="text-gray-600 text-sm">Real-time client-side execution with console output capture</p>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-lg border-l-4" style={{ borderColor: '#3776ab' }}>
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-3">🐍</span>
+              <h5 className="font-bold text-lg">Python</h5>
+            </div>
+            <p className="text-gray-600 text-sm">Secure server-side execution via E2B sandbox environment</p>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-lg border-l-4" style={{ borderColor: '#e34f26' }}>
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-3">🌐</span>
+              <h5 className="font-bold text-lg">HTML</h5>
+            </div>
+            <p className="text-gray-600 text-sm">Live HTML preview with iframe rendering and styling</p>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-lg border-l-4" style={{ borderColor: '#1572b6' }}>
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-3">🎨</span>
+              <h5 className="font-bold text-lg">CSS</h5>
+            </div>
+            <p className="text-gray-600 text-sm">Interactive CSS preview with live styling and animations</p>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-lg border-l-4" style={{ borderColor: '#000000' }}>
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-3">📄</span>
+              <h5 className="font-bold text-lg">JSON</h5>
+            </div>
+            <p className="text-gray-600 text-sm">JSON validation and formatting with detailed error reporting</p>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-lg border-l-4" style={{ borderColor: '#113448' }}>
+            <div className="flex items-center mb-3">
+              <span className="text-2xl mr-3">🤖</span>
+              <h5 className="font-bold text-lg">Armstrong</h5>
+            </div>
+            <p className="text-gray-600 text-sm">Multi-language support with visual stretch execution</p>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
