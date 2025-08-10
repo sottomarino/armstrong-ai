@@ -128,8 +128,8 @@ print(result)`,
   }
 };
 
-// Armstrong Container con esecuzione reale
-const ArmstrongContainer = ({ isExecuting, onExecute, executionStatus, currentLanguage }) => {
+// Armstrong Container SOLO per visualizzazione (senza pulsante)
+const ArmstrongContainer = ({ isExecuting, executionStatus, currentLanguage }) => {
   const [isStretched, setIsStretched] = useState(false);
   
   useEffect(() => {
@@ -150,7 +150,7 @@ const ArmstrongContainer = ({ isExecuting, onExecute, executionStatus, currentLa
   };
 
   return (
-    <div className="relative h-96 w-full max-w-lg mx-auto mb-8 flex flex-col items-center justify-center">
+    <div className="relative h-96 w-full max-w-lg mx-auto flex flex-col items-center justify-center">
       {/* Container principale Armstrong */}
       <motion.div
         className="relative w-64 h-80 bg-white rounded-3xl border-4 shadow-2xl overflow-hidden flex items-center justify-center"
@@ -255,12 +255,27 @@ const ArmstrongContainer = ({ isExecuting, onExecute, executionStatus, currentLa
           </motion.div>
         )}
       </motion.div>
+    </div>
+  );
+};
 
-      {/* Execute Button con immagine Armstrong */}
+// Execute Button separato
+const ExecuteButton = ({ onExecute, isExecuting, executionStatus, currentLanguage }) => {
+  const getStatusColor = () => {
+    switch(executionStatus) {
+      case 'success': return '#10b981';
+      case 'error': return '#ef4444';
+      case 'running': return '#f59e0b';
+      default: return LANGUAGE_CONFIGS[currentLanguage]?.color || '#113448';
+    }
+  };
+
+  return (
+    <div className="flex justify-center">
       <motion.button
         onClick={onExecute}
         disabled={isExecuting}
-        className="mt-8 w-24 h-24 rounded-full border-6 shadow-2xl flex items-center justify-center text-white font-bold text-xl transition-all disabled:opacity-50 relative overflow-hidden"
+        className="w-32 h-32 rounded-full border-6 shadow-2xl flex flex-col items-center justify-center text-white font-bold text-xl transition-all disabled:opacity-50 relative overflow-hidden"
         style={{
           backgroundColor: getStatusColor(),
           borderColor: '#FFFFFF'
@@ -279,17 +294,17 @@ const ArmstrongContainer = ({ isExecuting, onExecute, executionStatus, currentLa
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           >
-            <RefreshCw size={32} />
+            <RefreshCw size={40} />
           </motion.div>
         ) : (
           <>
-            {executionStatus === 'success' && <CheckCircle size={32} />}
-            {executionStatus === 'error' && <XCircle size={32} />}
-            {(executionStatus === 'ready' || !executionStatus) && <Play size={32} />}
+            {executionStatus === 'success' && <CheckCircle size={40} />}
+            {executionStatus === 'error' && <XCircle size={40} />}
+            {(executionStatus === 'ready' || !executionStatus) && <Play size={40} />}
           </>
         )}
         
-        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 font-bold text-sm tracking-wider" style={{ color: getStatusColor() }}>
+        <div className="mt-2 font-bold text-sm tracking-wider">
           {isExecuting ? 'EXECUTING...' : 'EXECUTE!'}
         </div>
       </motion.button>
@@ -636,7 +651,7 @@ export default function ArmstrongExecutor() {
       </motion.header>
 
       <div className="max-w-7xl mx-auto p-8">
-        {/* Armstrong Executor Section */}
+        {/* Armstrong Executor Section - Solo animazione */}
         <motion.div
           className="text-center mb-10"
           initial={{ opacity: 0, scale: 0.8 }}
@@ -650,19 +665,18 @@ export default function ArmstrongExecutor() {
             ARMSTRONG STRETCH EXECUTOR
           </motion.h2>
           <p className="text-lg mb-8" style={{ color: '#113448' }}>
-            Click Armstrong to stretch and execute your {language.toUpperCase()} code!
+            Your {language.toUpperCase()} code will be executed with Armstrong's power!
           </p>
           
           <ArmstrongContainer 
             isExecuting={isExecuting} 
-            onExecute={executeCode}
             executionStatus={executionStatus}
             currentLanguage={language}
           />
         </motion.div>
 
         {/* Code Editor and Output */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
           {/* Code Editor */}
           <motion.div
             initial={{ x: -100, opacity: 0 }}
@@ -790,7 +804,7 @@ export default function ArmstrongExecutor() {
                         <div>
                           <div>Welcome to Armstrong {languageConfig.name} Console! {languageConfig.icon}</div>
                           <div>Selected: {languageConfig.name} ({language})</div>
-                          <div>Click Armstrong to execute your {language} code</div>
+                          <div>Click the EXECUTE button below to run your {language} code</div>
                           <div className="text-cyan-400 mt-2">Ready for {languageConfig.name} execution! 🚀</div>
                         </div>
                       )}
@@ -802,13 +816,28 @@ export default function ArmstrongExecutor() {
           </motion.div>
         </div>
 
+        {/* Execute Button - Spostato qui sotto i due box */}
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.8 }}
+        >
+          <ExecuteButton 
+            onExecute={executeCode}
+            isExecuting={isExecuting}
+            executionStatus={executionStatus}
+            currentLanguage={language}
+          />
+        </motion.div>
+
         {/* Language Info Panel */}
         <motion.div
           className="mt-8 bg-white rounded-xl border-4 p-6 shadow-xl"
           style={{ borderColor: languageConfig.color }}
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
+          transition={{ duration: 0.8, delay: 1 }}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -843,7 +872,7 @@ export default function ArmstrongExecutor() {
           className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1 }}
+          transition={{ duration: 0.8, delay: 1.2 }}
         >
           <div className="bg-white rounded-lg p-6 shadow-lg border-l-4" style={{ borderColor: '#f7df1e' }}>
             <div className="flex items-center mb-3">
