@@ -25,7 +25,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  BookOpen
 } from 'lucide-react';
 
 // Configurazioni linguaggi
@@ -593,6 +594,17 @@ export default function ArmstrongExecutor() {
               </svg>
             </motion.a>
 
+            {/* Recipe Book Button - AGGIUNTO QUI */}
+            <motion.button
+              onClick={() => window.open('/recipes', '_blank')}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors flex items-center space-x-2"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <BookOpen size={16} />
+              <span>Recipe Book</span>
+            </motion.button>
+
             {/* Development Button */}
             <motion.button
               onClick={() => window.open('/development', '_blank')}
@@ -917,7 +929,7 @@ export default function ArmstrongExecutor() {
           <div className="bg-white rounded-lg p-6 shadow-lg border-l-4" style={{ borderColor: '#113448' }}>
             <div className="flex items-center mb-3">
               <span className="text-2xl mr-3">🤖</span>
-              <h5 className="font-bold text-lg">Armstrong</h5>
+              <h5 className="font-bold text-lg">AI agent</h5>
             </div>
             <p className="text-gray-600 text-sm">Multi-language support with visual stretch execution</p>
           </div>
