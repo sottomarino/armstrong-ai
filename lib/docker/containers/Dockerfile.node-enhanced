@@ -1,0 +1,43 @@
+FROM node:18-alpine
+
+# Metadati Armstrong Enhanced
+LABEL maintainer="Armstrong AI"
+LABEL description="Enhanced Node.js execution environment for Armstrong AI"
+LABEL version="2.0"
+
+# Crea utente non-root
+RUN addgroup -g 1000 armstrong && \
+    adduser -D -s /bin/sh -u 1000 -G armstrong armstrong
+
+# Installa librerie JavaScript enhanced
+RUN npm install -g --unsafe-perm=true \
+        lodash@4.17.21 \
+        moment@2.29.4 \
+        uuid@9.0.0 \
+        crypto-js@4.1.1 \
+        axios@1.4.0 \
+        express@4.18.2 \
+        chalk@5.2.0 && \
+    npm cache clean --force
+
+# Installa TypeScript per supporto TS
+RUN npm install -g typescript@5.1.6 ts-node@10.9.1
+
+# Directory workspace per sandbox
+WORKDIR /workspace
+RUN mkdir -p /workspace && chown -R armstrong:armstrong /workspace
+
+# Switch a utente non-root
+USER armstrong
+
+# Configurazioni sicurezza enhanced
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=128"
+ENV ARMSTRONG_ENHANCED=true
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "console.log('armstrong enhanced healthy')" || exit 1
+
+# Comando default
+CMD ["node"]
